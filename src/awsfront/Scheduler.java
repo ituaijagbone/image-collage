@@ -21,7 +21,7 @@ public class Scheduler {
 		int pn=9000;//Integer.parseInt(args[0]);//Port number for Connection
 		//Scheduler object
 		Scheduler sch=new Scheduler(pn);
-		
+		int choice = Integer.parseInt(args[0]);
 		System.out.println("Waiting for clients...");
 			serv=new ServerSocket(port);
 			Socket clsock=serv.accept();//accepting clients connection
@@ -41,14 +41,22 @@ public class Scheduler {
 			System.out.println("The task Batch has not come from the Client");
 			//e.printStackTrace();
 		}
-		
+		//the number of threads it should be argument
+		int num=10;
+		Thread worker[] = new Thread[num];
+		if (choice==1)
+		{
 		//######### Local Worker ########
 		
 		for(int i=0;i<numtask.length;i++)
 		{
-			Thread worker=new Thread(new localWorker(numtask[i]));
-			worker.start();
+			worker[i]=new Thread(new localWorker(numtask[i]));
+			worker[i].start();
+		}
+		}
+		else
+		{
+			//############REMOTE WORKER###########
 		}
 	}
-
 }
