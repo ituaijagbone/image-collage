@@ -69,7 +69,7 @@ public class Client {
 			for(int i = 0; i < n; i++)
 			{
 				task[i]=reader.readLine();//reading file names line by line
-				System.out.println(task[i]); //task is like "sleep 100"
+				//System.out.println(task[i]); //task is like "sleep 100"
 			}
 		client.send(task);
 		

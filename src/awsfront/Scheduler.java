@@ -21,7 +21,7 @@ public class Scheduler {
 		int pn=9000;//Integer.parseInt(args[0]);//Port number for Connection
 		//Scheduler object
 		Scheduler sch=new Scheduler(pn);
-		int choice = Integer.parseInt(args[0]);
+		int choice = 1;//Integer.parseInt(args[0]);
 		System.out.println("Waiting for clients...");
 			serv=new ServerSocket(port);
 			Socket clsock=serv.accept();//accepting clients connection
@@ -35,7 +35,7 @@ public class Scheduler {
 			for(int i = 0;i<taskqueue.length&&taskqueue[i]!=null;i++)
 			{
 					numtask[i]=Integer.parseInt(taskqueue[i]);
-					System.out.println(numtask[i]);
+					//System.out.println(numtask[i]);
 			}
 		} catch (ClassNotFoundException e) {
 			System.out.println("The task Batch has not come from the Client");
@@ -52,6 +52,8 @@ public class Scheduler {
 		{
 			worker[i]=new Thread(new localWorker(numtask[i]));
 			worker[i].start();
+	//	if(Thread.interrupted()!= true)
+				System.out.println("Thread "+i+" started Sleep "+numtask[i]+" Job");
 		}
 		}
 		else
