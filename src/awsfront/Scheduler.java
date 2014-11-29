@@ -90,16 +90,21 @@ public class Scheduler {
 		//the number of threads it should be argument
 		int num=10;
 		Thread worker[] = new Thread[num];
-		if (choice==2)
+		if (choice==1)
 		{
 		//######### Local Worker ########
 		
 		for(int i=0;i<ntask.size();i++)
 		{
-			worker[i]=new Thread(new localWorker(ntask.get(i)));
+			localWorker lw=new localWorker(ntask.get(i));
+			worker[i]=new Thread(lw);
 			worker[i].start();
 	//	if(Thread.interrupted()!= true)
-				System.out.println("Thread "+i+" started Sleep "+numtask[i]+" Job");
+				//System.out.println("Thread "+i+" started Sleep "+numtask[i]+" Job");
+				if(lw.getN()==0)
+				{System.out.println("Error completing the task in worker "+i);
+				}
+					
 		}
 		}
 		else
