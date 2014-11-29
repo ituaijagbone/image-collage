@@ -49,6 +49,40 @@ public class Scheduler {
 	}
 	static AmazonDynamoDBClient dynamoDB;
 	static AmazonSQS sqs;
+	static String myQueueUrl;
+	public static AmazonSQS init()
+	{
+		AWSCredentials credentials = null;
+        try {
+            credentials = new ProfileCredentialsProvider("default").getCredentials();
+        } catch (Exception e) {
+            throw new AmazonClientException(
+                    "Cannot load the credentials from the credential profiles file. " +
+                    "Please make sure that your credentials file is at the correct " +
+                    "location (C:\\Users\\SyedSufyan\\.aws\\credentials), and is in valid format.",
+                    e);
+        }
+        //CREATING AN SQS
+        AmazonSQS sqs = new AmazonSQSClient(credentials);
+        Region usWest2 = Region.getRegion(Regions.US_WEST_2);
+        sqs.setRegion(usWest2);
+        return sqs;
+	}
+	
+	public static String createSQS(AmazonSQS sqs)
+	{
+		System.out.println("Creating a new SQS queue called MyQueue.\n");
+        CreateQueueRequest createQueueRequest = new CreateQueueRequest("MyQueue");
+        String myQueueUrl = sqs.createQueue(createQueueRequest).getQueueUrl();
+
+        // List queues
+        System.out.println("Listing all queues in your account.\n");
+        for (String queueUrl : sqs.listQueues().getQueueUrls()) {
+            System.out.println("  QueueUrl: " + queueUrl);
+        }
+        System.out.println();
+        return myQueueUrl;
+	}
 	//taking off the dynamo part
 	/*private static Map<String, AttributeValue> newItem(int i, String task) {
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
@@ -66,7 +100,7 @@ public class Scheduler {
 		int pn=9002;//Integer.parseInt(args[0]);//Port number for Connection
 		//Scheduler object
 		Scheduler sch=new Scheduler(pn);
-		int choice = 1;//Integer.parseInt(args[0]);
+		int choice = 2;//Integer.parseInt(args[0]);
 		System.out.println("Waiting for clients...");
 			serv=new ServerSocket(port);
 			Socket clsock=serv.accept();//accepting clients connection
@@ -111,38 +145,15 @@ public class Scheduler {
 		{
 			//############REMOTE WORKER###########
 			//Initializing SQS and DYnamoDB
-			AWSCredentials credentials = null;
-	        try {
-	            credentials = new ProfileCredentialsProvider("default").getCredentials();
-	        } catch (Exception e) {
-	            throw new AmazonClientException(
-	                    "Cannot load the credentials from the credential profiles file. " +
-	                    "Please make sure that your credentials file is at the correct " +
-	                    "location (C:\\Users\\SyedSufyan\\.aws\\credentials), and is in valid format.",
-	                    e);
-	        }
-	        //CREATING AN SQS
-	        AmazonSQS sqs = new AmazonSQSClient(credentials);
-	        Region usWest2 = Region.getRegion(Regions.US_WEST_2);
-	        sqs.setRegion(usWest2);
+			sqs=init();
 	      /*  //CREATING DYNAMODB table
-         AmazonDynamoDBClient dynamoDB = new AmazonDynamoDBClient(credentials);
-        // Region usWest2 = Region.getRegion(Regions.US_WEST_2);
-         dynamoDB.setRegion(usWest2);*/
+	     AmazonDynamoDBClient dynamoDB = new AmazonDynamoDBClient(credentials);
+	    // Region usWest2 = Region.getRegion(Regions.US_WEST_2);
+	     dynamoDB.setRegion(usWest2);*/
 			//########SQS########
 		        try {
-		            // Create a queue
-		            System.out.println("Creating a new SQS queue called MyQueue.\n");
-		            CreateQueueRequest createQueueRequest = new CreateQueueRequest("MyQueue");
-		            String myQueueUrl = sqs.createQueue(createQueueRequest).getQueueUrl();
-
-		            // List queues
-		            System.out.println("Listing all queues in your account.\n");
-		            for (String queueUrl : sqs.listQueues().getQueueUrls()) {
-		                System.out.println("  QueueUrl: " + queueUrl);
-		            }
-		            System.out.println();
-		           
+		        	 // Create a queue
+		            myQueueUrl=createSQS(sqs);
 		            // Receive messages
 		            /*System.out.println("Receiving messages from MyQueue.\n");
 		            ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl);
@@ -196,7 +207,7 @@ public class Scheduler {
 		            //Once the SQS and DynamoDB tables are created we can Put the task in them  
 		            String msg;
 		            // Send message to SQS
-		            Map<String, AttributeValue> item;
+		            //Map<String, AttributeValue> item;
 		            System.out.println("Sending messages to MyQueue.\n");
 		            for(int i=0;i<task.size();i++)
 		            {
