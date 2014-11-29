@@ -5,7 +5,9 @@ import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import com.amazonaws.AmazonClientException;
@@ -14,6 +16,19 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
+import com.amazonaws.services.dynamodbv2.model.DescribeTableRequest;
+import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
+import com.amazonaws.services.dynamodbv2.model.KeyType;
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
+import com.amazonaws.services.dynamodbv2.model.PutItemRequest;
+import com.amazonaws.services.dynamodbv2.model.PutItemResult;
+import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
+import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import com.amazonaws.services.dynamodbv2.util.Tables;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.CreateQueueRequest;
@@ -32,12 +47,23 @@ public class Scheduler {
 	{
 		this.port=port;
 	}
+	static AmazonDynamoDBClient dynamoDB;
+	static AmazonSQS sqs;
+	
+	private static Map<String, AttributeValue> newItem(int i, String task) {
+        Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
+       item.put("id", new AttributeValue(String.valueOf(i)));
+        item.put("task", new AttributeValue(task));
+        return item;
+    }
+
 	public static void main(String[] args) throws IOException, InterruptedException {
 		
 		String taskqueue[]=new String[10];
 		ArrayList<String> task = new ArrayList<String>();
+		ArrayList<Integer> ntask = new ArrayList<Integer>();
 		int numtask[]=new int[10];
-		int pn=8000;//Integer.parseInt(args[0]);//Port number for Connection
+		int pn=9002;//Integer.parseInt(args[0]);//Port number for Connection
 		//Scheduler object
 		Scheduler sch=new Scheduler(pn);
 		int choice = 1;//Integer.parseInt(args[0]);
@@ -54,6 +80,7 @@ public class Scheduler {
 			for(int i = 0;i<taskqueue.length&&taskqueue[i]!=null;i++)
 			{		task.add(taskqueue[i]);
 					numtask[i]=Integer.parseInt(taskqueue[i]);
+					ntask.add(numtask[i]);
 					//System.out.println(numtask[i]);
 			}
 		} catch (ClassNotFoundException e) {
@@ -67,9 +94,9 @@ public class Scheduler {
 		{
 		//######### Local Worker ########
 		
-		for(int i=0;i<numtask.length;i++)
+		for(int i=0;i<ntask.size();i++)
 		{
-			worker[i]=new Thread(new localWorker(numtask[i]));
+			worker[i]=new Thread(new localWorker(ntask.get(i)));
 			worker[i].start();
 	//	if(Thread.interrupted()!= true)
 				System.out.println("Thread "+i+" started Sleep "+numtask[i]+" Job");
@@ -78,20 +105,26 @@ public class Scheduler {
 		else
 		{
 			//############REMOTE WORKER###########
-			 AWSCredentials credentials = null;
-		        try {
-		            credentials = new ProfileCredentialsProvider("default").getCredentials();
-		        } catch (Exception e) {
-		            throw new AmazonClientException(
-		                    "Cannot load the credentials from the credential profiles file. " +
-		                    "Please make sure that your credentials file is at the correct " +
-		                    "location (C:\\Users\\SyedSufyan\\.aws\\credentials), and is in valid format.",
-		                    e);
-		        }
-
-		        AmazonSQS sqs = new AmazonSQSClient(credentials);
-		        Region usWest2 = Region.getRegion(Regions.US_WEST_2);
-		        sqs.setRegion(usWest2);
+			//Initializing SQS and DYnamoDB
+			AWSCredentials credentials = null;
+	        try {
+	            credentials = new ProfileCredentialsProvider("default").getCredentials();
+	        } catch (Exception e) {
+	            throw new AmazonClientException(
+	                    "Cannot load the credentials from the credential profiles file. " +
+	                    "Please make sure that your credentials file is at the correct " +
+	                    "location (C:\\Users\\SyedSufyan\\.aws\\credentials), and is in valid format.",
+	                    e);
+	        }
+	        //CREATING AN SQS
+	        AmazonSQS sqs = new AmazonSQSClient(credentials);
+	        Region usWest2 = Region.getRegion(Regions.US_WEST_2);
+	        sqs.setRegion(usWest2);
+	        //CREATING DYNAMODB table
+         AmazonDynamoDBClient dynamoDB = new AmazonDynamoDBClient(credentials);
+        // Region usWest2 = Region.getRegion(Regions.US_WEST_2);
+         dynamoDB.setRegion(usWest2);
+			//########SQS########
 		        try {
 		            // Create a queue
 		            System.out.println("Creating a new SQS queue called MyQueue.\n");
@@ -104,17 +137,9 @@ public class Scheduler {
 		                System.out.println("  QueueUrl: " + queueUrl);
 		            }
 		            System.out.println();
-		            String msg;
-		            // Send a message
-		            System.out.println("Sending a messages to MyQueue.\n");
-		            for(int i=0;i<task.size();i++)
-		            {
-		            	msg=task.get(i);
-		            	System.out.println(msg);
-		            	sqs.sendMessage(new SendMessageRequest(myQueueUrl, msg ));
-		            }
+		           
 		            // Receive messages
-		            System.out.println("Receiving messages from MyQueue.\n");
+		            /*System.out.println("Receiving messages from MyQueue.\n");
 		            ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl);
 		            List<Message> messages = sqs.receiveMessage(receiveMessageRequest).getMessages();
 		            for (Message message : messages) {
@@ -129,18 +154,70 @@ public class Scheduler {
 		                    System.out.println("    Value: " + entry.getValue());
 		                }
 		            }
+		            
 		            System.out.println();
 		            // Delete a message
 		            System.out.println("Deleting a message.\n");
 		            String messageRecieptHandle = messages.get(0).getReceiptHandle();
 		            sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageRecieptHandle));
-
+					
 		            // Delete a queue
 		            System.out.println("Deleting the test queue.\n");
+		            sqs.deleteQueue(new DeleteQueueRequest(myQueueUrl));*/
+		            //DynamoDB TABLE
+		            String tableName = "sleep-task-table";
+
+		            // Create table if it does not exist yet
+		            if (Tables.doesTableExist(dynamoDB, tableName)) {
+		                System.out.println("Table " + tableName + " is already ACTIVE");
+		            } else {
+		                // Create a table with a primary hash key named 'name', which holds a string
+		                CreateTableRequest createTableRequest = new CreateTableRequest().withTableName(tableName)
+		                    .withKeySchema(new KeySchemaElement().withAttributeName("id").withKeyType(KeyType.HASH))
+		                    .withAttributeDefinitions(new AttributeDefinition().withAttributeName("id").withAttributeType(ScalarAttributeType.S))
+		                    .withProvisionedThroughput(new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L));
+		                    TableDescription createdTableDescription = dynamoDB.createTable(createTableRequest).getTableDescription();
+		                System.out.println("Created Table: " + createdTableDescription);
+
+		                // Wait for it to become active
+		                System.out.println("Waiting for " + tableName + " to become ACTIVE...");
+		                Tables.waitForTableToBecomeActive(dynamoDB, tableName);
+		            }
+		            // Describe our new table
+		            DescribeTableRequest describeTableRequest = new DescribeTableRequest().withTableName(tableName);
+		            TableDescription tableDescription = dynamoDB.describeTable(describeTableRequest).getTable();
+		            System.out.println("Table Description: " + tableDescription);
+		          
+		            //Once the SQS and DynamoDB tables are created we can Put the task in them  
+		            String msg;
+		            // Send message to SQS
+		            Map<String, AttributeValue> item;
+		            System.out.println("Sending messages to MyQueue.\n");
+		            for(int i=0;i<task.size();i++)
+		            {
+		            	msg=task.get(i);
+		            	System.out.println(msg);
+		            	sqs.sendMessage(new SendMessageRequest(myQueueUrl, msg ));
+		            
+		         // Adding items to DYnamoDB table
+		            	// i is the ID of the task
+		            // second argument is the task
+		            
+		            
+		           	item = newItem(i,task.get(i));// see the Map description
+		           	
+		            PutItemRequest putItemRequest = new PutItemRequest(tableName, item);
+		            //PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
+		            //System.out.println("Result: " + putItemResult);
+		        }
+		            System.out.println("Putting the Task in SQS and DynamoDB Completed");
+		         // Delete a queue
+		            System.out.println("Deleting the test queue.\n");
 		            sqs.deleteQueue(new DeleteQueueRequest(myQueueUrl));
+		            
 		        } catch (AmazonServiceException ase) {
 		            System.out.println("Caught an AmazonServiceException, which means your request made it " +
-		                    "to Amazon SQS, but was rejected with an error response for some reason.");
+		                    "to Amazon, but was rejected with an error response for some reason.");
 		            System.out.println("Error Message:    " + ase.getMessage());
 		            System.out.println("HTTP Status Code: " + ase.getStatusCode());
 		            System.out.println("AWS Error Code:   " + ase.getErrorCode());
@@ -152,6 +229,8 @@ public class Scheduler {
 		                    "being able to access the network.");
 		            System.out.println("Error Message: " + ace.getMessage());
 		        }
+		            
+		        
 		}
 	}
 }

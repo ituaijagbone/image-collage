@@ -51,7 +51,7 @@ public class Client {
 		String hostname = args[0];
 		String file=args[1];
 		
-		Client client=new Client(hostname,8000);
+		Client client=new Client(hostname,9002);
 		//Connecting with the Scheduler/server
 		try {
 			client.connect();
