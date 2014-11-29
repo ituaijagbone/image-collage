@@ -49,13 +49,13 @@ public class Scheduler {
 	}
 	static AmazonDynamoDBClient dynamoDB;
 	static AmazonSQS sqs;
-	
-	private static Map<String, AttributeValue> newItem(int i, String task) {
+	//taking off the dynamo part
+	/*private static Map<String, AttributeValue> newItem(int i, String task) {
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
        item.put("id", new AttributeValue(String.valueOf(i)));
         item.put("task", new AttributeValue(task));
         return item;
-    }
+    }*/
 
 	public static void main(String[] args) throws IOException, InterruptedException {
 		
@@ -120,10 +120,10 @@ public class Scheduler {
 	        AmazonSQS sqs = new AmazonSQSClient(credentials);
 	        Region usWest2 = Region.getRegion(Regions.US_WEST_2);
 	        sqs.setRegion(usWest2);
-	        //CREATING DYNAMODB table
+	      /*  //CREATING DYNAMODB table
          AmazonDynamoDBClient dynamoDB = new AmazonDynamoDBClient(credentials);
         // Region usWest2 = Region.getRegion(Regions.US_WEST_2);
-         dynamoDB.setRegion(usWest2);
+         dynamoDB.setRegion(usWest2);*/
 			//########SQS########
 		        try {
 		            // Create a queue
@@ -164,7 +164,7 @@ public class Scheduler {
 		            // Delete a queue
 		            System.out.println("Deleting the test queue.\n");
 		            sqs.deleteQueue(new DeleteQueueRequest(myQueueUrl));*/
-		            //DynamoDB TABLE
+		           /* //DynamoDB TABLE
 		            String tableName = "sleep-task-table";
 
 		            // Create table if it does not exist yet
@@ -187,7 +187,7 @@ public class Scheduler {
 		            DescribeTableRequest describeTableRequest = new DescribeTableRequest().withTableName(tableName);
 		            TableDescription tableDescription = dynamoDB.describeTable(describeTableRequest).getTable();
 		            System.out.println("Table Description: " + tableDescription);
-		          
+		          */
 		            //Once the SQS and DynamoDB tables are created we can Put the task in them  
 		            String msg;
 		            // Send message to SQS
@@ -204,14 +204,15 @@ public class Scheduler {
 		            // second argument is the task
 		            
 		            
-		           	item = newItem(i,task.get(i));// see the Map description
+		           	//item = newItem(i,task.get(i));// see the Map description
 		           	
-		            PutItemRequest putItemRequest = new PutItemRequest(tableName, item);
+		            //PutItemRequest putItemRequest = new PutItemRequest(tableName, item);
 		            //PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
 		            //System.out.println("Result: " + putItemResult);
 		        }
-		            System.out.println("Putting the Task in SQS and DynamoDB Completed");
-		         // Delete a queue
+		            System.out.println("Putting the Task in SQS Completed");
+		        //#### remove the delete queue part when running real time, unless its required ####
+		            // Delete a queue
 		            System.out.println("Deleting the test queue.\n");
 		            sqs.deleteQueue(new DeleteQueueRequest(myQueueUrl));
 		            
