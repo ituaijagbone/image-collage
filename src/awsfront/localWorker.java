@@ -1,24 +1,17 @@
 package awsfront;
 
-public class localWorker implements Runnable {
+import java.util.concurrent.Callable;
+
+public class localWorker implements Callable<String> {
 
 	int sleepTime;
-	private int n=1;
-	
 	
 	public localWorker(int sleepTime) {
 		this.sleepTime=sleepTime;
 	}
-	public void setN(int n)
-	{
-		this.n=n;
-	}
-	public int getN()
-	{
-		return n;
-	}
+	
 	@Override
-	public void run() {
+	public String call() {
 		double startTime, endTime, duration;
 		// TODO Auto-generated method stub
 		
@@ -33,9 +26,10 @@ public class localWorker implements Runnable {
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			setN(0);
+			return "Failure on Sleep Task " + sleepTime;
 		}
 		
+		return "Success on Sleep Task " + sleepTime;
 	}
 
 }
