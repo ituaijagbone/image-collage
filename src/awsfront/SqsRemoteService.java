@@ -10,13 +10,13 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.CreateQueueRequest;
+import com.amazonaws.services.sqs.model.DeleteQueueRequest;
+import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
-import com.amazonaws.services.sqs.model.SendMessageBatchResult;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
-import com.amazonaws.services.sqs.model.Message;
 
 public class SqsRemoteService {
 	AWSCredentials credentials = null;
@@ -99,6 +99,14 @@ public class SqsRemoteService {
 		messageRequest.setWaitTimeSeconds(20);
 		List<Message> messages = sqs.receiveMessage(messageRequest).getMessages();
 		return messages;
+	}
+	
+	public void deleteQueue(String queueUrl) {
+		try {
+			sqs.deleteQueue(new DeleteQueueRequest(queueUrl));
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
 	}
 
 }

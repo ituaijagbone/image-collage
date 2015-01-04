@@ -24,7 +24,7 @@ public class RemoteWorker implements Runnable {
 			}
 		} else {
 			System.out.println("Wrong invocation");
-			System.out.println("client –s <IP_ADDRESS:PORT> -w <WORKLOAD_FILE>");
+			System.out.println(" java -jar Worker.jar –i num");
 			System.exit(0);
 		}
 		SqsRemoteService sqsRemoteService = SqsRemoteService.getSqsRemoteService();
@@ -85,13 +85,11 @@ public class RemoteWorker implements Runnable {
 					String clientTask = message.getBody();
 					StringTokenizer clTokenizer = new StringTokenizer(clientTask, ",");
 					String clientId = null;
-					String counterId= null;
 					String desc = null;
 					
 					clientId = clTokenizer.nextToken();
-					counterId = clTokenizer.nextToken();
 					desc = clTokenizer.nextToken();
-					threadService.submit(new RemoteSleepTask(clientId, counterId, desc));
+					threadService.submit(new RemoteImgTask(clientId, desc));
 				}
 				
 				try {

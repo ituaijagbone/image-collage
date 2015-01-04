@@ -1,12 +1,14 @@
 package awsfront;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-
-import javax.sound.sampled.Port;
 
 public class Client {
 
@@ -26,22 +28,18 @@ public class Client {
 		System.out.println("Connection Established");
 	}
 
-	public void send(String[] task) throws IOException {
-		String tsk[] = new String[task.length];
-		int i;
-		if (task.length == 0)
-			System.out.println("no task passed");
+	public void send(String task) throws IOException {
+		if (task.length() == 0) {
+			System.out.println("no URL passed");
+		}
 		else {
-			for (i = 0; i < task.length; i++) {
-				tsk[i] = task[i];
-			}
 			try { // for sending the list of filenames
 				ObjectOutputStream outputStream = new ObjectOutputStream(
 						socketClient.getOutputStream());
-				outputStream.writeObject(tsk);
-				System.out.println("Tasks haven been batched to Scheduler");
+				outputStream.writeObject(task);
+				System.out.println("URLs haven been batched to Scheduler");
 			} catch (IOException e) {
-				System.out.println("error sending TAsk to the Scheduler");
+				System.out.println("error sending URL to the Scheduler");
 			}
 		}
 	}
@@ -52,11 +50,9 @@ public class Client {
 					socketClient.getInputStream());
 			Object object;
 			object = objectInput.readObject();
-			String[] result = (String[]) object;
+			String result = (String) object;
 			System.out.println("Task has been completed by scheduler");
-			for (int i = 0; i < result.length; i++) {
-				System.out.println(result[i]);
-			}
+			System.out.println("Movie storage location: " + result);
 			socketClient.close();
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -71,10 +67,10 @@ public class Client {
 		// TODO Auto-generated method stub
 
 		// Enter the Name/IP of the Server/Scheduler as Argument 1
-		// File name (LOad file ) as Argument 2
+		// File name (Load file ) as Argument 2
 		if (args.length < 4) {
 			System.out.println("Wrong invocation");
-			System.out.println("client –s <IP_ADDRESS:PORT> -w <WORKLOAD_FILE>");
+			System.out.println("java -jar Client.jar –s <IP_ADDRESS:PORT> -w <LIST_FILE>");
 			System.exit(0);
 		}
 		String[] serverAddress = args[1].split(":");
@@ -83,7 +79,7 @@ public class Client {
 			Integer.parseInt(serverAddress[1]);
 		} catch (IndexOutOfBoundsException e) {
 			System.out.println("Port number missing");
-			System.out.println("client –s <IP_ADDRESS:PORT> -w <WORKLOAD_FILE>");
+			System.out.println("client –s <IP_ADDRESS:PORT> -w <LIST_FILE>");
 			System.exit(0);
 		}
 		File file = new File(args[3]);
@@ -96,17 +92,25 @@ public class Client {
 
 		InetAddress address = InetAddress.getLocalHost();
 		String clientHost = address.getHostAddress().replace(".", "_");
-		ArrayList<String>task = new ArrayList<String>();
 		String line = "";
-		int taskCounter = 1;
+		/**
+		 * Concatenate the list of picture urls into one string
+		 */
+		StringBuilder strBuilder = new StringBuilder();
+		strBuilder.append(clientHost).append(",");
 		while ((line = reader.readLine()) != null) {
-			task.add(clientHost + "," + taskCounter + "," + line);// reading file names line by line
-			taskCounter+=1;
-			// System.out.println(task[i]); //task is like "sleep 100"
+			if (!line.isEmpty()) {
+				strBuilder.append(line).append("@"); // Reading url names line by line
+			}
 		}
 		reader.close();
 		fis.close();
-		
+//		String mm = strBuilder.toString().split(",")[1];
+//		String testStr[] = mm.split("@");
+//		for (String string : testStr) {
+//			System.out.println(string);
+//		}
+//		System.exit(1);
 		Client client = new Client(serverAddress[0], Integer.parseInt(serverAddress[1]));
 		// Connecting with the Scheduler/server
 		try {
@@ -115,16 +119,12 @@ public class Client {
 			// TODO Auto-generated catch block
 			System.out.println("Host Unknown. Cannot establish Connection");
 		}
-
-		// String path = "C:/Users/SyedSufyan/workspace/awsfront/src/workLoad/"
-		// + file;
 		
 		long startTime = System.nanoTime();
-		client.send(task.toArray(new String[task.size()]));
+		client.send(strBuilder.toString());
 		client.receive();
 		double endTime = (double)(System.nanoTime() -startTime)/1000000;
 		System.out.println("Total Time taken: " + endTime);
-		System.out.println("Throughput: " + task.size()/endTime);
 	}
 
 }

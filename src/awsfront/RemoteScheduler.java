@@ -1,64 +1,37 @@
 package awsfront;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 
-public class RemoteScheduler implements Callable<String[]>{
-	private ArrayList<String> sleepTasks;
+public class RemoteScheduler implements Callable<String>{
+	private String imgTasks;
 	private SqsRemoteService sqsRemoteService;
 	private String schedulerUrl;
 	private String clientId;
-	private List<String> clientResult;
+	private String clientResult;
 	
-	public RemoteScheduler(String clientId, ArrayList<String> sleepTasks) {
-		this.sleepTasks = sleepTasks;
+	public RemoteScheduler(String clientId, String imgTasks) {
+		this.imgTasks = imgTasks;
 		this.sqsRemoteService = SqsRemoteService.getSqsRemoteService();
 		this.schedulerUrl = sqsRemoteService.getSchedulerUrl();
 		this.clientId = clientId;
 	}
 	
 	public void sendTaskToQueue() {
-		List<SendMessageBatchRequestEntry> entries;
-		
-		if (sleepTasks.size() <= 10) {
-			entries = new ArrayList<SendMessageBatchRequestEntry>();
-			for (int i = 0; i < sleepTasks.size(); i++) {
-				entries.add(new SendMessageBatchRequestEntry("id"+i, 
-						sleepTasks.get(i)));
-			}
-			sqsRemoteService.sendBatchMessageToSchedulerQueue(schedulerUrl, entries);
-		} else {
-			entries = new ArrayList<SendMessageBatchRequestEntry>();
-			for (int i = 0; i < sleepTasks.size(); i++) {
-				entries.add(new SendMessageBatchRequestEntry("id"+i, 
-						sleepTasks.get(i)));
-				if ((i+1) % 10 == 0) {
-					sqsRemoteService.sendBatchMessageToSchedulerQueue(schedulerUrl, entries);
-					entries = new ArrayList<SendMessageBatchRequestEntry>();
-				}
-			}
-			
-			if (entries.size() > 0 && entries.size() <= 10) {
-				sqsRemoteService.sendBatchMessageToSchedulerQueue(schedulerUrl, entries);
-			}
-		}
-		
+		sqsRemoteService.sendMessageToSchedulerQueue(schedulerUrl, imgTasks);
 	}
 
 	@Override
-	public String[] call() {
+	public String call() {
 		this.sqsRemoteService = SqsRemoteService.getSqsRemoteService();
-		clientResult = new ArrayList<String>();
+//		clientResult = new ArrayList<String>();
 		String clientUrl = sqsRemoteService.getClientUrl(this.clientId);
 		System.out.println(clientUrl);
-		while (clientResult.size() < sleepTasks.size()) {
+		boolean notFound = true;
+		while (notFound) {
 			if (clientUrl.isEmpty()) {
 				continue;
 			}
@@ -79,21 +52,18 @@ public class RemoteScheduler implements Callable<String[]>{
 					
 					tmpId = clTokenizer.nextToken();
 					if (tmpId.equalsIgnoreCase(this.clientId)) {
-						String countId = clTokenizer.nextToken();
-						String desc = clTokenizer.nextToken();
-						if (!clientResult.contains(countId + "," + desc)) {
-							clientResult.add(countId + "," + desc);
-//							System.out.println("client result size: " + clientResult.size());
-						}
+						clientResult = clTokenizer.nextToken();
+						notFound = false;
+						break;
 					}
 				}
 			}
 		}
-		
+		sqsRemoteService.deleteQueue(clientUrl);
 		return getClientResult();
 	}
 	
-	public String[] getClientResult() {
-		return this.clientResult.toArray(new String[clientResult.size()]);
+	public String getClientResult() {
+		return this.clientResult;
 	}
 }

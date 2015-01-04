@@ -1,42 +1,47 @@
 package awsfront;
 
-public class RemoteSleepTask implements Runnable {
+public class RemoteImgTask implements Runnable {
 	
-	private String sleepTask;
+	private String imgTask;
 	private String clientId;
 	private String clientCounter;
 	
-	public RemoteSleepTask(String clientId, String clientCounter, String sleepTask) {
+	public RemoteImgTask(String clientId, String imgTask) {
 		this.clientId = clientId;
-		this.sleepTask = sleepTask;
-		this.clientCounter = clientCounter;
+		this.imgTask = imgTask;
 	}
 	
 	@Override
 	public void run() {
 		DdbRemoteService ddbRemoteService = new DdbRemoteService();
-		String tableName = "SleepTasks";
+		String tableName = "ImgTasks";
 		ddbRemoteService.createTable(tableName);
 		
 		// check if task already in 
-		String tmpId = this.clientId.replace("_", "") + this.clientCounter;
+		String tmpId = this.clientId.replace("_", "");
 		boolean isFound = ddbRemoteService.load(tmpId, tableName);
+		ImageToVideo imgToVideo;
 //		System.out.println("state - " + isFound);
 		if (!isFound) {
-			ddbRemoteService.insert(tmpId, this.sleepTask, tableName);
+			ddbRemoteService.insert(tmpId, this.imgTask, tableName);
+			StringBuilder message = new StringBuilder();
+			message.append(clientId).append("," ).append(this.clientCounter).append(",");
 			try {
-				System.out.println("Found new tasks");
-				System.out.println("Going to sleep for " + this.sleepTask + " millisecond");
-				Thread.sleep(Long.parseLong(this.sleepTask));
-			} catch (InterruptedException e) {
+				String[] urls = imgTask.split("@");
+				if (urls.length != 0) {
+					imgToVideo = new ImageToVideo(tmpId, urls);
+					imgToVideo.createImgFolder();
+					imgToVideo.downloadImgs();
+					message.append(imgToVideo.collageImgs());
+				}
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 			
 			SqsRemoteService sqsRemoteService = SqsRemoteService.getSqsRemoteService();
 			String clientUrl = sqsRemoteService.createClientQueue(
 					this.clientId);
-			String message = this.clientId + "," + this.clientCounter + "," + "Task completed";
-			sqsRemoteService.sendMessageToClientQueue(clientUrl, message);
+			sqsRemoteService.sendMessageToClientQueue(clientUrl, message.toString());
 		} else {
 //			System.out.print("Skipping");
 		}

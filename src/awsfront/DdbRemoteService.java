@@ -118,7 +118,7 @@ public class DdbRemoteService {
 		}
 	}
 
-	public void delete(SleepTaskItem sleepTaskItem) {
+	public void delete(ImgTaskItem sleepTaskItem) {
 		// Delete the item.
 		mapper.delete(sleepTaskItem);
 	}

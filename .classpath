@@ -3,5 +3,15 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 	<classpathentry kind="con" path="com.amazonaws.eclipse.sdk.AWS_JAVA_SDK"/>
+	<classpathentry exported="true" kind="lib" path="/home/itua/aws-java-sdk/1.9.8/lib/aws-java-sdk-1.9.8.jar" sourcepath="/home/itua/aws-java-sdk/1.9.8/lib/aws-java-sdk-1.9.8-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="file:/home/itua/aws-java-sdk/1.9.8/documentation/javadoc/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/home/itua/Documents/dropbox api/dropbox-java-sdk-1.7.7/lib/dropbox-core-sdk-1.7.7.jar" sourcepath="/home/itua/Documents/dropbox api/dropbox-java-sdk-1.7.7/lib/dropbox-core-sdk-1.7.7.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="file:/home/itua/Documents/dropbox%20api/dropbox-java-sdk-1.7.7/javadoc/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
